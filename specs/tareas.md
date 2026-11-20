@@ -17,7 +17,7 @@ Estado según las pruebas con evidencia del documento (Figuras 1 a 9). Lo que es
 
 - [ ] RF-01 Registro de usuarios (API lista; falta probarla y la pantalla)
 - [x] RF-02 Inicio de sesión (probado: 200 y 401, Figuras 4 y 9)
-- [ ] RF-03 Recuperación de contraseña (no implementado)
+- [x] RF-03 Recuperación de contraseña (implementada y probada de principio a fin con Ethereal Email en entorno de desarrollo; pendiente configurar correo real para producción).
 - [x] RF-04 Registro de equipos (probado: 201, Figura 5)
 - [x] RF-05 Consulta de equipos (probado: 200, Figuras 6 y 8)
 - [ ] RF-06 Historial de mantenimiento (API lista; falta probar y la vista por equipo)
