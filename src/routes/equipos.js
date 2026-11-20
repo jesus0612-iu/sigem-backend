@@ -5,16 +5,19 @@ const { autenticar, permitir } = require('../middleware/auth');
 router.use(autenticar);
 
 // RF-05: listar y filtrar equipos por estado, ubicación, tipo o próximo mantenimiento
+// RF-10: incluye el costo acumulado de reparaciones de cada equipo
 router.get('/', async (req, res) => {
   const { estado, ubicacion, tipo, vence_antes } = req.query;
   const where = []; const params = [];
-  if (estado) { where.push('estado = ?'); params.push(estado); }
-  if (ubicacion) { where.push('ubicacion LIKE ?'); params.push(`%${ubicacion}%`); }
-  if (tipo) { where.push('tipo LIKE ?'); params.push(`%${tipo}%`); }
-  if (vence_antes) { where.push('proximo_mantenimiento <= ?'); params.push(vence_antes); }
-  const sql = 'SELECT * FROM equipos' + (where.length ? ' WHERE ' + where.join(' AND ') : '') + ' ORDER BY nombre';
+  if (estado) { where.push('e.estado = ?'); params.push(estado); }
+  if (ubicacion) { where.push('e.ubicacion LIKE ?'); params.push(`%${ubicacion}%`); }
+  if (tipo) { where.push('e.tipo LIKE ?'); params.push(`%${tipo}%`); }
+  if (vence_antes) { where.push('e.proximo_mantenimiento <= ?'); params.push(vence_antes); }
+  const sql = `SELECT e.*,
+      COALESCE((SELECT SUM(m.costo) FROM mantenimientos m WHERE m.equipo_id = e.id AND m.estado = 'completado'), 0) AS costo_acumulado
+    FROM equipos e` + (where.length ? ' WHERE ' + where.join(' AND ') : '') + ' ORDER BY e.nombre';
   const [rows] = await pool.query(sql, params);
-  res.json(rows);
+  res.json(rows.map((r) => ({ ...r, costo_acumulado: Number(r.costo_acumulado) })));
 });
 
 router.get('/:id', async (req, res) => {
@@ -62,7 +65,7 @@ router.get('/:id/historial', async (req, res) => {
 // RF-10: costo acumulado de reparaciones por equipo
 router.get('/:id/costos', async (req, res) => {
   const [rows] = await pool.query(
-    'SELECT COALESCE(SUM(costo),0) AS costo_acumulado FROM mantenimientos WHERE equipo_id = ?', [req.params.id]);
+    "SELECT COALESCE(SUM(costo),0) AS costo_acumulado FROM mantenimientos WHERE equipo_id = ? AND estado = 'completado'", [req.params.id]);
   res.json(rows[0]);
 });
 
