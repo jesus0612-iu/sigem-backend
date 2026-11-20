@@ -1,3 +1,4 @@
+
 {
   "name": "sigem-backend",
   "version": "1.0.0",
@@ -8,7 +9,8 @@
     "dev": "node --watch src/server.js",
     "seed": "node src/seed.js",
     "seed:demo": "node src/seed-demo.js",
-    "migrar": "node src/migrar.js"
+    "migrar": "node src/migrar.js && node src/migrar-recuperacion.js",
+    "migrar:recuperacion": "node src/migrar-recuperacion.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
