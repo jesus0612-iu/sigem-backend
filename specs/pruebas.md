@@ -86,13 +86,14 @@ Basado en la sección 3.2 del documento.
 - **Administrador:** Se comprobó que puede consultar, registrar y eliminar equipos desde la interfaz. Se realizó una eliminación correctamente.
 - **Técnico Especialista:** Puede consultar y registrar equipos. No aparecen las opciones de editar ni eliminar.
 - **Responsable de Área:** Puede consultar equipos, pero no aparecen opciones para registrarlos, editarlos o eliminarlos.
-- **Autenticación:** Se verificó que la solicitud `GET /api/equipos` envía un token mediante `Authorization: Bearer`. La respuesta observada fue HTTP 304 (caché), por lo que todavía falta comprobar directamente el HTTP 200 esperado.
+- **Autenticación con token:** Se verificó que `GET /api/equipos` envía el encabezado `Authorization: Bearer`. La respuesta observada fue HTTP 304 (caché).
+- **Acceso sin token:** Se realizó una solicitud `GET /api/equipos` sin autenticación. El backend respondió **HTTP 401** y mostró `{"error":"Token requerido"}`. Se confirmó mediante Chrome DevTools (Network).
 
-**Pendiente:** Verificar las respuestas HTTP 403 para operaciones no autorizadas y HTTP 401 para solicitudes sin token.
+**Pendiente:** Verificar las respuestas HTTP 403 para las operaciones no autorizadas y confirmar directamente la respuesta HTTP 200 en la consulta autenticada.
 
 **Estado:** [ ] Pasó · [ ] Falló — Prueba parcialmente verificada.
 
-**Evidencia:** Capturas de los permisos visibles de los tres roles y de la solicitud HTTP en Chrome DevTools.
+**Evidencia:** Capturas del Inventario con los tres roles, de la autenticación Bearer y de la respuesta HTTP 401 en Chrome DevTools.
 
 ### CP-07 (RF-09) Registrar falla
 
