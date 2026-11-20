@@ -57,34 +57,80 @@ Basado en la sección 3.2 del documento.
 - **Obtenido:** HTTP 201 con `id` 1 (Figura 5); aparece en `GET /api/equipos` (Figura 6) y en la pantalla de Inventario (Figura 8).
 - **Estado:** [x] Pasó · [ ] Falló
 
+
 ### CP-04 (RF-07) Registrar mantenimiento
 
-**Solicitud:** `POST http://localhost:3000/api/mantenimientos` (token de administrador o técnico) con `equipo_id`, `tecnico_id`, `tipo`, `fecha`, `descripcion` y `costo`.
+**Pasos:** Iniciar sesión como Técnico Especialista, obtener el token JWT y registrar un mantenimiento preventivo mediante la API.
 
-- **Esperado:** HTTP 201; la orden queda en estado `programado` y aparece en el historial del equipo (`GET /api/equipos/:id/historial`, RF-06).
-- **Obtenido:** Se registró un mantenimiento desde el rol Técnico Especialista. El sistema permitió guardarlo y se comprobó que aparece en la lista de mantenimientos.
-- **Estado:** [ ] Pasó · [ ] Falló — Pendiente de verificación completa.
-- **Evidencia:** Registro visible en la lista de mantenimientos. Pendiente guardar la captura.
+**Solicitud:** `POST http://localhost:3000/api/mantenimientos` (token Bearer).
+
+**Datos utilizados:**
+- Equipo: Servidor Blade Rack Principal (`equipo_id`: 3).
+- Técnico asignado: Técnico de Mantenimiento (`tecnico_id`: 2).
+- Tipo: `preventivo`.
+- Fecha: `2026-12-15`.
+- Descripción: `CP-04 - Prueba de registro de mantenimiento`.
+- Costo: `0`.
+
+**Esperado:**
+- La API responde HTTP 201.
+- Se crea una orden de mantenimiento.
+- La orden queda inicialmente en estado `programado`.
+- El mantenimiento aparece en el historial del equipo correspondiente.
+
+**Obtenido:**
+- La API respondió HTTP 201.
+- Se creó el mantenimiento con ID 66.
+- La orden quedó en estado `programado`.
+- Se consultó `GET /api/equipos/3/historial`.
+- El mantenimiento 66 apareció correctamente con su equipo, tipo, fecha, descripción y costo.
+
+**Estado:** [x] Pasó · [ ] Falló
+
+**Evidencia:** Respuesta HTTP 201 con `{"id":66}` y consulta del historial del equipo 3 desde PowerShell.
+
+
 
 ### CP-05 (RF-10) Costo acumulado
 
-**Pasos:** Se creó un mantenimiento preventivo para la Cortadora Láser Industrial con un costo de $780.000 y se verificó su registro en el sistema.
+**Objetivo:** Verificar que SIGEM calcule correctamente el costo acumulado de los mantenimientos completados de un equipo, sin sumar órdenes programadas ni en proceso.
 
-**Solicitud:** `GET http://localhost:3000/api/equipos/:id/costos`
+**Equipo utilizado:** Servidor Blade Rack Principal (`equipo_id`: 3).
 
-**Esperado:** `costo_acumulado` = X + Y (suma de los costos de los mantenimientos **completados** del equipo); las órdenes programadas no deben sumar.
+**Solicitud:** `GET http://localhost:3000/api/equipos/3/costos`
 
-**Obtenido:** El mantenimiento de $780.000 aparece en estado `Completado`. El gasto acumulado del Dashboard pasó de $36.611.000 a $37.391.000, aumentando exactamente $780.000.
+**Pasos:**
+1. Iniciar sesión como Técnico Especialista y obtener un token JWT.
+2. Consultar el costo acumulado del equipo 3 mediante la API.
+3. Consultar el listado de mantenimientos.
+4. Filtrar los registros correspondientes al equipo 3.
+5. Sumar únicamente los costos de los mantenimientos con estado `completado`.
+6. Comparar la suma obtenida con el resultado de la API.
 
-**Estado:** [ ] Pasó · [ ] Falló — Verificación parcial satisfactoria.
+**Esperado:**
+- La API devuelve el campo `costo_acumulado`.
+- El costo acumulado corresponde a la suma de los mantenimientos completados.
+- Los mantenimientos en estado `programado` o `en_proceso` no se incluyen en la suma.
 
-**Pendiente:** Comprobar el costo acumulado específico del equipo mediante la API y verificar que las órdenes programadas no se incluyan en la suma.
+**Obtenido:**
+- La API devolvió un costo acumulado de $4.232.000.
+- Se consultaron los mantenimientos del equipo 3.
+- La suma de los mantenimientos completados fue de $4.232.000.
+- Ambos valores coincidieron exactamente.
+- La diferencia entre el resultado de la API y la suma calculada fue de $0.
+- Anteriormente, se comprobó que el gasto acumulado del Dashboard aumentó $780.000 al completar un mantenimiento de ese valor.
 
-**Evidencia:** Captura del mantenimiento completado y del gasto acumulado del Dashboard.
+**Estado:** [x] Pasó · [ ] Falló
+
+**Evidencia:** Consultas realizadas desde PowerShell a `GET /api/equipos/3/costos` y `GET /api/mantenimientos`. Se verificó que ambos cálculos dieron $4.232.000.
+
+**Conclusión:** El cálculo de costo acumulado del equipo funciona correctamente para los datos verificados.
+
+
 
 ### CP-06 (RNF-01) Control de acceso por rol
 
-**Pasos:** Iniciar sesión con `tecnico@sigem.com` y utilizar su token de autenticación para comprobar los permisos.
+**Pasos:** Iniciar sesión con `tecnico@sigem.com` y utilizar su token JWT para comprobar los permisos de acceso a la API.
 
 **Esperado:**
 - `DELETE /api/equipos/:id` → HTTP 403 (solo administrador).
@@ -93,17 +139,20 @@ Basado en la sección 3.2 del documento.
 - Cualquiera de las rutas protegidas sin token → HTTP 401.
 
 **Obtenido:**
-- **Administrador:** Se comprobó que puede consultar, registrar y eliminar equipos desde la interfaz. Se realizó una eliminación correctamente.
-- **Técnico Especialista:** Puede consultar y registrar equipos. No aparecen las opciones de editar ni eliminar.
-- **Responsable de Área:** Puede consultar equipos, pero no aparecen opciones para registrarlos, editarlos o eliminarlos.
-- **Autenticación con token:** Se verificó que `GET /api/equipos` envía el encabezado `Authorization: Bearer`. La respuesta observada fue HTTP 304 (caché).
-- **Acceso sin token:** Se realizó una solicitud `GET /api/equipos` sin autenticación. El backend respondió **HTTP 401** y mostró `{"error":"Token requerido"}`. Se confirmó mediante Chrome DevTools (Network).
+- **Administrador:** Se comprobó que puede consultar, registrar y eliminar equipos desde la interfaz.
+- **Técnico Especialista:** Puede consultar y registrar equipos. Se inició sesión correctamente y se obtuvo un token JWT válido.
+- **Responsable de Área:** Puede consultar equipos, pero no aparecen las opciones para registrarlos, editarlos o eliminarlos.
+- **Acceso sin token:** `GET /api/equipos` respondió HTTP 401 con `{"error":"Token requerido"}`.
+- **Eliminar equipo como Técnico:** `DELETE /api/equipos/999999999` respondió HTTP 403.
+- **Registrar usuarios como Técnico:** `POST /api/auth/register` respondió HTTP 403.
+- **Consultar equipos como Técnico:** `GET /api/equipos` respondió HTTP 200.
 
-**Pendiente:** Verificar las respuestas HTTP 403 para las operaciones no autorizadas y confirmar directamente la respuesta HTTP 200 en la consulta autenticada.
+**Estado:** [x] Pasó · [ ] Falló
 
-**Estado:** [ ] Pasó · [ ] Falló — Prueba parcialmente verificada.
+**Evidencia:** Verificaciones realizadas desde PowerShell y Chrome DevTools. Se confirmaron los códigos HTTP 200, 401 y 403, además de las restricciones visibles en la interfaz según el rol.
 
-**Evidencia:** Capturas del Inventario con los tres roles, de la autenticación Bearer y de la respuesta HTTP 401 en Chrome DevTools.
+**Nota:** Las pruebas HTTP 403 se realizaron utilizando un usuario Técnico autenticado. Las operaciones fueron rechazadas antes de modificar los registros.
+
 
 ### CP-07 (RF-09) Registrar falla
 
